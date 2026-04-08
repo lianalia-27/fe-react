@@ -31,7 +31,7 @@ const LoginPage = () => {
         title: "Login Successful",
         text: res.data?.message || "You have successfully logged in!",
         icon: "success",
-        time: 2000,
+        timer: 2000,
         showConfirmButton: false,
       });
       navigate("/dashboard");
