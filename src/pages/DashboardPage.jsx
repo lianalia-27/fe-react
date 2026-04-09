@@ -1,20 +1,23 @@
-import { useEffect, useState } from "react";
-import { Row, Col, Container, Table, Card, Button, Modal, Form } from "react-bootstrap";
+import { use, useEffect, useState } from "react";
+import { Container, Table, Card, Row, Col, Button, Modal, Form } from "react-bootstrap";
 import NavbarComponent from "../components/NavbarComponent";
 import api from "../utils/api";
 import Swal from "sweetalert2";
 
 const DashboardPage = () => {
   const [users, setUsers] = useState([]);
+  const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [show, setShow] = useState(false);
   const [errors, setErrors] = useState({});
-  const [formData, setFormData] = useState({
+
+  const _initForm = {
     name: "",
     email: "",
     password: "",
     role_id: "",
-  });
+  };
+  const [formData, setFormData] = useState(_initForm);
 
   const [isEdit, setIsEdit] = useState(false);
   const [currentId, setCurrentId] = useState(null);
@@ -22,15 +25,11 @@ const DashboardPage = () => {
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
+
   const handleClose = () => {
     setShow(false);
     setIsEdit(false);
-    setFormData({
-      name: "",
-      email: "",
-      password: "",
-      role_id: "",
-    });
+    setFormData(_initForm);
     setErrors({});
   };
 
@@ -48,6 +47,18 @@ const DashboardPage = () => {
     }
   };
 
+  const fetchRoles = async () => {
+    try {
+      const res = await api.get("/roles");
+      setRoles(res.data?.data);
+    } catch (error) {
+      console.log(error);
+      Swal.fire("Error", "Failed to fetch roles", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrors({});
@@ -55,82 +66,74 @@ const DashboardPage = () => {
     try {
       if (isEdit) {
         const res = await api.put(`/users/${currentId}`, formData);
-         Swal.fire("Success", res.data.message, "success");
+        Swal.fire("Success!", res.data.message, "success");
         handleClose();
         fetchUsers();
-        setFormData({
-          name: "",
-          email: "",
-          password: "",
-        });
-
+        setFormData(_initForm);
       } else {
         const res = await api.post("/users", formData);
-        Swal.fire("Success", res.data.message, "success");
+        Swal.fire("Success!", res.data.message, "success");
         handleClose();
         fetchUsers();
-        setFormData({
-          name: "",
-          email: "",
-          password: "",
-        });
+        setFormData(_initForm);
       }
     } catch (error) {
-      console.log(error);
+      console.log(error.response.data?.error);
       if (error.response && error.response.status === 422) {
         setErrors(error.response.data?.error);
       } else {
-        Swal.fire("Error", "Failed to create new data", "error");
+        Swal.fire("Error", "Failed create new data", "error");
       }
     }
   };
 
-
   const handleEdit = (user) => {
-    console.log(user);
     setIsEdit(true);
     setCurrentId(user.id);
     setFormData({
-      name: user.name,
-      email: user.email,
+      name: user?.name,
+      email: user?.email,
+      role_id: user?.role_id,
       password: "",
     });
+
     handleShow();
   };
 
-const handleDelete = async (user) => {
-  Swal.fire({
-    title: "Are you sure?",
-    text: "You won't be able to revert this!",
-    icon: "warning",
-    showCancelButton: true,
-    confirmButtonColor: "#d33",
-    cancelButtonColor: "#3085d6",
-    confirmButtonText: "Yes, delete it!",
-    cancelButtonText: "No, cancel!",
-  }).then(async (result) => {
-    if (result.isConfirmed) {
-      try {
-        const res = await api.delete(`/users/${id}`);
-        Swal.fire("Deleted!", res.data.message, "success");
-        fetchUsers();
-      } catch (error) {
-        console.log(error);
-        Swal.fire("Failed!!", "Failed to delete user", "error");
+  const handleDelete = (id) => {
+    Swal.fire({
+      icon: "warning",
+      title: "Are you sure??",
+      text: "You won't be able to revert this!!",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Yes, Delete!",
+      cancelButtonText: "Cancel",
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          const res = await api.delete(`/users/${id}`);
+          Swal.fire("Deleted", res.data.message, "success");
+          fetchUsers();
+        } catch (error) {
+          console.log(error);
+          Swal.fire("Failed!!", "Cannot deleted this data", "error");
+        }
       }
-    }
-  });
-};
+    });
+  };
 
   useEffect(() => {
-    // apa yang terjadi ketika halaman dashboard dibuka, maka akan memanggil fungsi fetchUsers untuk mengambil data pengguna dari API
+    // 1.apa yang mau dilakukan
     fetchUsers();
-  }, []);
+    fetchRoles();
+  }, []); //[]: cukup 1 kali perintah fetchUsers/users dijalankan
 
   return (
     <>
       <NavbarComponent />
-      <Container className="mt-5">
+      <Container>
         <Row>
           <Col md={12}>
             <Card className="shadow-sm border-0 mt-3">
@@ -141,12 +144,11 @@ const handleDelete = async (user) => {
                     Create New User
                   </Button>
                 </div>
-
                 <Table striped bordered hover responsive>
                   <thead>
                     <tr>
                       <th>No</th>
-                      <th>Nama</th>
+                      <th>Name</th>
                       <th>Email</th>
                       <th>Action</th>
                     </tr>
@@ -159,26 +161,19 @@ const handleDelete = async (user) => {
                           <td>{user.name}</td>
                           <td>{user.email}</td>
                           <td>
-                            <Button
-                              variant="warning"
-                              size="sm"
-                              className="me-2"
-                              onClick={() => handleEdit(user)}>Edit
+                            <Button variant="warning" size="sm" className="me-2" onClick={() => handleEdit(user)}>
+                              Edit
                             </Button>
-                            <Button
-                              variant="danger"
-                              size="sm"
-                              className="me-2"
-                              onClick={() => handleDelete(user)}>Delete
+                            <Button onClick={() => handleDelete(user.id)} variant="danger" size="sm" className="me-2">
+                              Delete
                             </Button>
-
                           </td>
                         </tr>
                       ))
                     ) : (
                       <tr>
                         <td colSpan={4} className="text-center">
-                          No users found
+                          Data Empty
                         </td>
                       </tr>
                     )}
@@ -192,47 +187,31 @@ const handleDelete = async (user) => {
                   <Form onSubmit={handleSubmit}>
                     <Modal.Body>
                       <Form.Group className="mb-3">
-                        <Form.Label className="form-label">Name</Form.Label>
-                        <Form.Control
-                          type="text"
-                          name="name"
-                          isInvalid={!!errors?.name}
-                          placeholder="Enter your Name"
-                          value={formData?.name}
-                          onChange={handleChange}
-                        ></Form.Control>
-                        <Form.Control.Feedback type="invalid">
-                          {errors?.name?.[0]}
-                        </Form.Control.Feedback>
+                        <Form.Label className="form-label">Role</Form.Label>
+                        <Form.Select onChange={handleChange} name="role_id" value={formData?.role_id} isInvalid={!!errors.role_id}>
+                          <option value="">Select Role</option>
+                          {roles.map((role, index) => (
+                            <option value={role.id} key={index}>
+                              {role.name}
+                            </option>
+                          ))}
+                        </Form.Select>
+                        <Form.Control.Feedback type="invalid">{errors?.role_id?.[0]}</Form.Control.Feedback>
                       </Form.Group>
                       <Form.Group className="mb-3">
-                        <Form.Label className="form-label">
-                          Email address
-                        </Form.Label>
-                        <Form.Control
-                          type="email"
-                          name="email"
-                          isInvalid={!!errors?.email}
-                          placeholder="Enter your email"
-                          value={formData?.email}
-                          onChange={handleChange}
-                        ></Form.Control>
-                        <Form.Control.Feedback type="invalid">
-                          {errors?.email?.[0]}
-                        </Form.Control.Feedback>
+                        <Form.Label className="form-label">Name</Form.Label>
+                        <Form.Control value={formData?.name} onChange={handleChange} isInvalid={!!errors?.name} name="name" type="text" placeholder="Enter your name"></Form.Control>
+                        <Form.Control.Feedback type="invalid">{errors?.name?.[0]}</Form.Control.Feedback>
+                      </Form.Group>
+                      <Form.Group className="mb-3">
+                        <Form.Label className="form-label">Email</Form.Label>
+                        <Form.Control value={formData?.email} onChange={handleChange} isInvalid={!!errors?.email} name="email" type="email" placeholder="Enter your mail"></Form.Control>
+                        <Form.Control.Feedback type="invalid">{errors?.email?.[0]}</Form.Control.Feedback>
                       </Form.Group>
                       <Form.Group className="mb-3">
                         <Form.Label className="form-label">Password</Form.Label>
-                        <Form.Control
-                          type="password"
-                          name="password"
-                          isInvalid={!!errors?.password}
-                          placeholder="Enter your password"
-                          onChange={handleChange}
-                        ></Form.Control>
-                        <Form.Control.Feedback type="invalid">
-                          {errors?.password?.[0]}
-                        </Form.Control.Feedback>
+                        <Form.Control onChange={handleChange} isInvalid={!!errors?.password} name="password" type="password" placeholder="Enter your password"></Form.Control>
+                        <Form.Control.Feedback type="invalid">{errors?.password?.[0]}</Form.Control.Feedback>
                       </Form.Group>
                     </Modal.Body>
                     <Modal.Footer>

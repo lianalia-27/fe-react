@@ -1,4 +1,4 @@
-import {useState} from "react";
+import { useState } from "react";
 import { Form, Button } from "react-bootstrap";
 import axios from "axios";
 import Swal from "sweetalert2";
@@ -18,7 +18,7 @@ const LoginPage = () => {
   };
 
   const handleLogin = async (e) => {
-    e.preventDefault();
+    event.preventDefault();
     setErrors({});
 
     try {
@@ -26,12 +26,11 @@ const LoginPage = () => {
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("user", JSON.stringify(res.data.data));
 
-   
       Swal.fire({
-        title: "Login Successful",
-        text: res.data?.message || "You have successfully logged in!",
         icon: "success",
-        timer: 2000,
+        title: "Login success",
+        text: res.data?.message || "Welcome",
+        time: 2000,
         showConfirmButton: false,
       });
       navigate("/dashboard");
@@ -40,36 +39,23 @@ const LoginPage = () => {
         setErrors(error.response.data?.errors);
       } else if (error.response.status === 401) {
         Swal.fire({
-          title: "Login Failed",
-          text: error.response.data?.message || "Please check your email or password!!",
           icon: "warning",
+          title: "Login failed",
+          text: error.response.data?.message || "Please check your email or password!!",
         });
       }
     }
   };
-
   return (
     <AuthCard title="Login Form">
       <Form onSubmit={handleLogin}>
         <Form.Group className="mb-3">
-          <Form.Label className="form-label">Email address</Form.Label>
-          <Form.Control
-            isInvalid={!!errors.email}
-            name="email"
-            onChange={handleChange}
-            type="email"
-            placeholder="Please enter your email"
-          ></Form.Control>
+          <Form.Label className="form-label">Email</Form.Label>
+          <Form.Control isInvalid={!!errors?.email} name="email" onChange={handleChange} type="email" placeholder="Enter your mail"></Form.Control>
         </Form.Group>
         <Form.Group className="mb-3">
           <Form.Label className="form-label">Password</Form.Label>
-          <Form.Control
-            isInvalid={!!errors.password}
-            name="password"
-            onChange={handleChange}
-            type="password"
-            placeholder="Please enter your password"
-          ></Form.Control>
+          <Form.Control isInvalid={!!errors?.email} name="password" onChange={handleChange} type="password" placeholder="Enter your mail"></Form.Control>
         </Form.Group>
         <Button variant="primary" className="w-100" type="submit">
           Login
@@ -77,7 +63,7 @@ const LoginPage = () => {
 
         <div className="text-center">
           <small>
-            You don't have an account? <Link to="/register">Register here</Link>
+            Dont have an account ? <Link to="/register">Register</Link>
           </small>
         </div>
       </Form>
